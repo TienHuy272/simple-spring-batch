@@ -16,7 +16,7 @@ spring:
         format_sql: true
   batch:
     job:
-      enabled: true
+      enabled: false
     jdbc:
       initialize-schema: ALWAYS
 server:

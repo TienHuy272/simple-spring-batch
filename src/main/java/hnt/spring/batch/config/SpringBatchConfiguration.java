@@ -23,7 +23,6 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
-@EnableBatchProcessing
 public class SpringBatchConfiguration {
 
     @Autowired
@@ -39,7 +38,7 @@ public class SpringBatchConfiguration {
     @Bean
     public FlatFileItemReader<Customer> reader() {
         FlatFileItemReader<Customer> itemReader = new FlatFileItemReader<>();
-        itemReader.setResource(new FileSystemResource("customers.csv"));
+        itemReader.setResource(new FileSystemResource("src/main/resources/customers.csv"));
         itemReader.setName("csvReader");
         itemReader.setLinesToSkip(1);
         itemReader.setLineMapper(lineMapper());
