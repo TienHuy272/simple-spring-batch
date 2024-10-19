@@ -4,6 +4,7 @@ import hnt.spring.batch.entity.Customer;
 import hnt.spring.batch.repository.CustomerRepository;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
@@ -14,12 +15,15 @@ import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
+
+import java.io.File;
 
 @Configuration
 public class SpringBatchConfiguration {
@@ -35,9 +39,10 @@ public class SpringBatchConfiguration {
      * Config Item Reader
      */
     @Bean
-    public FlatFileItemReader<Customer> reader() {
+    @StepScope
+    public FlatFileItemReader<Customer> reader(@Value("#{jobParameters[fullPathFileName]}") String pathToFile) {
         FlatFileItemReader<Customer> itemReader = new FlatFileItemReader<>();
-        itemReader.setResource(new FileSystemResource("src/main/resources/customers.csv"));
+        itemReader.setResource(new FileSystemResource(new File(pathToFile)));
         itemReader.setName("csvReader");
         itemReader.setLinesToSkip(1);
         itemReader.setLineMapper(lineMapper());
@@ -64,7 +69,7 @@ public class SpringBatchConfiguration {
      * Config item processor
      */
     @Bean
-    public CustomerProcessor processor  () {
+    public CustomerProcessor processor() {
         return new CustomerProcessor();
     }
 
@@ -80,10 +85,10 @@ public class SpringBatchConfiguration {
     }
 
     @Bean
-    public Step step1() {
+    public Step step1(FlatFileItemReader<Customer> itemReader) {
         return new StepBuilder("csv-step", jobRepository)
                 .<Customer, Customer>chunk(10, transactionManager)
-                .reader(reader())
+                .reader(itemReader)
                 .processor(processor())
                 .writer(writer())
                 .taskExecutor(taskExecutor())
@@ -91,9 +96,9 @@ public class SpringBatchConfiguration {
     }
 
     @Bean
-    public Job runJob() {
+    public Job runJob(FlatFileItemReader<Customer> itemReader) {
         return new JobBuilder("importCustomers", jobRepository)
-                .flow(step1())
+                .flow(step1(itemReader))
                 .end()
                 .build();
 
